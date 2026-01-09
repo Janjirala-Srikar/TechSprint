@@ -15,6 +15,7 @@ import { DayTimeline } from "@/components/dashboard/DayTimeline";
 import { ResumeAnalysis } from "@/components/dashboard/ResumeAnalysis";
 import { Button } from "@/components/ui/button";
 import { Task } from "@/components/dashboard/DailyTask";
+import axios from "axios";
 
 const recommendedCompanies = [
   {
@@ -190,6 +191,53 @@ export default function Dashboard() {
           return day;
         })
       );
+    }
+  };
+
+  const handleFileUpload = async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append('resume', file);
+
+      console.log('Uploading resume to backend:', file.name);
+
+      // Read the file content
+      const fileContent = await file.text();
+      console.log('Resume content:', fileContent);
+
+      const response = await axios.post('http://localhost:5000/api/roadmap/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      console.log('Resume upload response:', response.data);
+      return { ...response.data, fileContent };
+    } catch (error) {
+      console.error('Error uploading resume:', error);
+      throw error;
+    }
+  };
+
+  const handleGenerateRoadmap = async (file) => {
+    try {
+      const uploadedResumeData = await handleFileUpload(file);
+
+      const roadmapDetails = {
+        title: 'My Roadmap', // Ensure title is included
+        days,
+        weakAreas,
+        selectedCompany,
+        resumeContent: uploadedResumeData,
+      };
+      console.log('Sending roadmap details to backend:', roadmapDetails);
+
+      const response = await axios.post('http://localhost:5000/api/roadmap', roadmapDetails);
+
+      console.log('Response received from backend:', response.data);
+      console.log('Roadmap saved successfully:', response.data);
+    } catch (error) {
+      console.error('Error saving roadmap:', error);
     }
   };
 
@@ -373,6 +421,13 @@ export default function Dashboard() {
                 />
               ))}
             </div>
+
+            <Button
+              onClick={handleGenerateRoadmap}
+              className="mt-4"
+            >
+              Generate Roadmap
+            </Button>
           </div>
         </div>
 

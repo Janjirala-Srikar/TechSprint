@@ -8,6 +8,7 @@ import { StepIndicator } from "@/components/onboarding/StepIndicator";
 import { ResumeUpload } from "@/components/onboarding/ResumeUpload";
 import { SkillsInput } from "@/components/onboarding/SkillsInput";
 import { CareerGoals } from "@/components/onboarding/CareerGoals";
+import axios from "axios";
 
 const steps = ["Resume", "Skills", "Goals"];
 
@@ -52,6 +53,21 @@ export default function Onboarding() {
   const handleBack = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleGenerateRoadmap = async () => {
+    try {
+      const roadmapDetails = { skills, goals, hasResume: !!uploadedFile };
+      console.log("Sending roadmap details to backend:", roadmapDetails);
+
+      const response = await axios.post("http://localhost:5000/api/roadmap", roadmapDetails);
+
+      console.log("Response received from backend:", response.data);
+      console.log("Roadmap saved successfully:", response.data);
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Error saving roadmap:", error);
     }
   };
 
@@ -112,7 +128,11 @@ export default function Onboarding() {
             </Button>
 
             <Button
-              onClick={handleNext}
+              onClick={
+                currentStep === steps.length - 1
+                  ? handleGenerateRoadmap
+                  : handleNext
+              }
               disabled={!canContinue()}
               size="lg"
               className="gap-2"
@@ -133,9 +153,11 @@ export default function Onboarding() {
 
           {/* Helper text */}
           <p className="text-center text-sm text-muted-foreground mt-6">
-            {currentStep === 0 && "Your resume will be analyzed to personalize your preparation plan"}
+            {currentStep === 0 &&
+              "Your resume will be analyzed to personalize your preparation plan"}
             {currentStep === 1 && "Add at least 3 skills to continue"}
-            {currentStep === 2 && "Select your target role and timeline to continue"}
+            {currentStep === 2 &&
+              "Select your target role and timeline to continue"}
           </p>
         </div>
       </main>
