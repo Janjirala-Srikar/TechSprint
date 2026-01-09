@@ -1,0 +1,154 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
+
+/* PrepPulse Design System - High-end SaaS aesthetic */
+
+@layer base {
+  :root {
+    /* Brand Colors */
+    --primary: 222 77% 33%;
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 173 82% 40%;
+    --secondary-foreground: 0 0% 100%;
+    
+    --accent: 38 92% 50%;
+    --accent-foreground: 222 47% 11%;
+    
+    /* State Colors */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    
+    --warning: 25 95% 53%;
+    --warning-foreground: 0 0% 100%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Surface Colors */
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+    
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    
+    /* Text Hierarchy */
+    --text-primary: 222 47% 11%;
+    --text-secondary: 215 16% 37%;
+    --text-muted: 215 17% 65%;
+    
+    --muted: 214 32% 91%;
+    --muted-foreground: 215 17% 65%;
+    
+    /* UI Elements */
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 222 77% 33%;
+    
+    --radius: 0.75rem;
+    
+    /* Progress & Milestones */
+    --progress: 173 82% 40%;
+    --milestone: 38 92% 50%;
+    
+    /* Resume Analysis */
+    --match: 142 71% 45%;
+    --improve: 38 92% 50%;
+    --missing: 0 84% 60%;
+    
+    /* Sidebar */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 222 77% 33%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 40% 96%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 214 32% 91%;
+    --sidebar-ring: 222 77% 33%;
+  }
+
+  .dark {
+    --primary: 222 77% 50%;
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 173 82% 45%;
+    --secondary-foreground: 0 0% 100%;
+    
+    --background: 222 47% 8%;
+    --foreground: 210 40% 98%;
+    
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 98%;
+    
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+    
+    --muted: 215 16% 20%;
+    --muted-foreground: 215 17% 65%;
+    
+    --border: 215 16% 20%;
+    --input: 215 16% 20%;
+    --ring: 173 82% 45%;
+    
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 210 40% 98%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Manrope', system-ui, sans-serif;
+    @apply font-bold tracking-tight;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-xl border border-border/50 shadow-lg;
+  }
+  
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(222 77% 45%) 100%);
+  }
+  
+  .gradient-progress {
+    background: linear-gradient(135deg, hsl(var(--secondary)) 0%, hsl(173 82% 50%) 100%);
+  }
+  
+  .gradient-accent {
+    background: linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(38 92% 60%) 100%);
+  }
+  
+  .text-gradient {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+@layer utilities {
+  .animate-pulse-soft {
+    animation: pulse-soft 2s ease-in-out infinite;
+  }
+  
+  @keyframes pulse-soft {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+}
