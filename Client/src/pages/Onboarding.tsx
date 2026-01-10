@@ -10,6 +10,13 @@ import { SkillsInput } from "@/components/onboarding/SkillsInput";
 import { CareerGoals } from "@/components/onboarding/CareerGoals";
 import axios from "axios";
 
+// ✅ IMPORTANT FIX
+import { GlobalWorkerOptions, getDocument } from "pdfjs-dist/legacy/build/pdf";
+import pdfWorker from "pdfjs-dist/legacy/build/pdf.worker.min?url";
+
+// ✅ Set worker source locally (NO CORS)
+GlobalWorkerOptions.workerSrc = pdfWorker;
+
 const steps = ["Resume", "Skills", "Goals"];
 
 export default function Onboarding() {
@@ -25,57 +32,81 @@ export default function Onboarding() {
   });
 
   const canContinue = () => {
-    switch (currentStep) {
-      case 0:
-        return uploadedFile !== null;
-      case 1:
-        return skills.length >= 3;
-      case 2:
-        return goals.targetRole && goals.timeline;
-      default:
-        return false;
-    }
+    if (currentStep === 0) return uploadedFile !== null;
+    if (currentStep === 1) return skills.length >= 3;
+    if (currentStep === 2) return goals.targetRole && goals.timeline;
+    return false;
   };
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
-      // Save data and navigate to dashboard
-      localStorage.setItem(
-        "preppulse_profile",
-        JSON.stringify({ skills, goals, hasResume: true })
-      );
       navigate("/dashboard");
     }
   };
 
   const handleBack = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
+    if (currentStep > 0) setCurrentStep(currentStep - 1);
+  };
+
+  // ✅ PDF extraction works now
+  const extractPdfText = async (file: File): Promise<string> => {
+    try {
+      const buffer = await file.arrayBuffer();
+      const pdf = await getDocument({ data: buffer }).promise;
+
+      let text = "";
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        text += content.items.map((item: any) => item.str).join(" ") + "\n";
+      }
+      return text;
+    } catch (error) {
+      console.error("PDF extraction failed:", error);
+      return "";
     }
   };
 
   const handleGenerateRoadmap = async () => {
     try {
-      const roadmapDetails = { skills, goals, hasResume: !!uploadedFile };
-      console.log("Sending roadmap details to backend:", roadmapDetails);
+      let resumeContent = "";
 
-      const response = await axios.post("http://localhost:5000/api/roadmap", roadmapDetails);
+      if (uploadedFile) {
+        if (uploadedFile.type === "application/pdf") {
+          resumeContent = await extractPdfText(uploadedFile);
+        } else {
+          resumeContent = await uploadedFile.text();
+        }
+      }
 
-      console.log("Response received from backend:", response.data);
-      console.log("Roadmap saved successfully:", response.data);
-      navigate("/dashboard");
+      const payload = {
+        skills,
+        goals: { ...goals, resumeContent },
+        hasResume: !!uploadedFile,
+      };
+
+      console.log("Sending roadmap details:", payload);
+
+      // Call Gemini backend endpoint to generate the plan
+      const geminiResponse = await axios.post(
+        "http://localhost:5000/api/gemini/generate-gemini",
+        payload
+      );
+
+      console.log("Gemini plan:", geminiResponse.data.plan);
+      // Optionally, you can navigate or store the plan in state
+      // navigate("/dashboard");
     } catch (error) {
-      console.error("Error saving roadmap:", error);
+      console.error("Roadmap generation failed:", error);
     }
   };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="p-6 border-b border-border bg-card">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
+      <header className="p-6 border-b bg-card">
+        <div className="max-w-4xl mx-auto flex justify-between">
           <Logo />
           <span className="text-sm text-muted-foreground">
             Step {currentStep + 1} of {steps.length}
@@ -83,27 +114,21 @@ export default function Onboarding() {
         </div>
       </header>
 
-      {/* Main content */}
-      <main className="flex-1 flex flex-col items-center justify-center p-6">
+      <main className="flex-1 flex justify-center items-center p-6">
         <div className="w-full max-w-xl">
-          {/* Step indicator */}
-          <div className="mb-12">
-            <StepIndicator steps={steps} currentStep={currentStep} />
-          </div>
+          <StepIndicator steps={steps} currentStep={currentStep} />
 
-          {/* Step content */}
           <AnimatePresence mode="wait">
             <motion.div
               key={currentStep}
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
             >
               {currentStep === 0 && (
                 <ResumeUpload
-                  onUpload={setUploadedFile}
                   uploadedFile={uploadedFile}
+                  onUpload={setUploadedFile}
                 />
               )}
               {currentStep === 1 && (
@@ -115,50 +140,35 @@ export default function Onboarding() {
             </motion.div>
           </AnimatePresence>
 
-          {/* Navigation */}
-          <div className="flex items-center justify-between mt-12">
+          <div className="flex justify-between mt-10">
             <Button
               variant="ghost"
               onClick={handleBack}
               disabled={currentStep === 0}
-              className="gap-2"
             >
-              <ArrowLeft className="w-4 h-4" />
-              Back
+              <ArrowLeft className="w-4 h-4 mr-2" /> Back
             </Button>
 
             <Button
+              disabled={!canContinue()}
               onClick={
                 currentStep === steps.length - 1
                   ? handleGenerateRoadmap
                   : handleNext
               }
-              disabled={!canContinue()}
-              size="lg"
-              className="gap-2"
             >
               {currentStep === steps.length - 1 ? (
                 <>
-                  <Sparkles className="w-4 h-4" />
+                  <Sparkles className="w-4 h-4 mr-2" />
                   Generate My Roadmap
                 </>
               ) : (
                 <>
-                  Continue
-                  <ArrowRight className="w-4 h-4" />
+                  Continue <ArrowRight className="w-4 h-4 ml-2" />
                 </>
               )}
             </Button>
           </div>
-
-          {/* Helper text */}
-          <p className="text-center text-sm text-muted-foreground mt-6">
-            {currentStep === 0 &&
-              "Your resume will be analyzed to personalize your preparation plan"}
-            {currentStep === 1 && "Add at least 3 skills to continue"}
-            {currentStep === 2 &&
-              "Select your target role and timeline to continue"}
-          </p>
         </div>
       </main>
     </div>

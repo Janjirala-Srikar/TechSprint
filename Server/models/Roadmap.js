@@ -9,6 +9,7 @@ const roadmapSchema = new mongoose.Schema({
     targetCompany: { type: String },
     timeline: { type: String },
     aspirations: { type: String },
+    resumeContent: { type: String }, // Added resumeContent field
   }, // Add goals field
   hasResume: { type: Boolean }, // Add hasResume field
   steps: [

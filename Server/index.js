@@ -18,6 +18,9 @@ app.use(cors({
 }));
 
 // Parse JSON
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
 app.use(express.json());
 
 /* =======================
@@ -41,9 +44,11 @@ mongoose
 
 // Import routes
 const roadmapRoutes = require('./routes/roadmap');
+const geminiRoutes = require('./routes/gemini');
 
 // Use routes
 app.use('/api/roadmap', roadmapRoutes);
+app.use('/api/gemini', geminiRoutes);
 
 // Health check
 app.get('/', (req, res) => {
