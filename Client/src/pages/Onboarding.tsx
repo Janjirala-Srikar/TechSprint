@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Sparkles, AlertCircle, Loader } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,8 @@ export default function Onboarding() {
     timeline: "",
     aspirations: "",
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const canContinue = () => {
     if (currentStep === 0) return uploadedFile !== null;
@@ -41,13 +43,15 @@ export default function Onboarding() {
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
-    } else {
-      navigate("/dashboard");
+      setError("");
     }
   };
 
   const handleBack = () => {
-    if (currentStep > 0) setCurrentStep(currentStep - 1);
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+      setError("");
+    }
   };
 
   // ✅ PDF extraction works now
@@ -71,6 +75,8 @@ export default function Onboarding() {
 
   const handleGenerateRoadmap = async () => {
     try {
+      setIsLoading(true);
+      setError("");
       let resumeContent = "";
 
       if (uploadedFile) {
@@ -83,7 +89,7 @@ export default function Onboarding() {
 
       const payload = {
         skills,
-        goals: { ...goals, resumeContent },
+        goals: { ...goals, resumeContent: resumeContent.substring(0, 1000) },
         hasResume: !!uploadedFile,
       };
 
@@ -92,14 +98,62 @@ export default function Onboarding() {
       // Call Gemini backend endpoint to generate the plan
       const geminiResponse = await axios.post(
         "http://localhost:5000/api/gemini/generate-gemini",
-        payload
+        payload,
+        {
+          timeout: 70000,
+        }
       );
 
-      console.log("Gemini plan:", geminiResponse.data.plan);
-      // Optionally, you can navigate or store the plan in state
-      // navigate("/dashboard");
-    } catch (error) {
+      console.log("Gemini response:", geminiResponse.data);
+
+      // ✅ FIX: Ensure plan is an array before storing
+      if (geminiResponse.data.plan) {
+        let planData = geminiResponse.data.plan;
+        
+        // If plan is a string, parse it
+        if (typeof planData === 'string') {
+          console.log("Plan is a string, parsing...");
+          // Try to extract JSON from the string
+          const jsonMatch = planData.match(/\[[\s\S]*\]/);
+          if (jsonMatch) {
+            planData = JSON.parse(jsonMatch[0]);
+          } else {
+            planData = JSON.parse(planData);
+          }
+        }
+        
+        // Verify it's an array
+        if (!Array.isArray(planData)) {
+          throw new Error("Roadmap plan is not an array");
+        }
+
+        console.log("✅ Plan is valid array with", planData.length, "days");
+        
+        // Store as properly formatted JSON string
+        sessionStorage.setItem("generatedRoadmap", JSON.stringify(planData));
+        console.log("✅ Roadmap stored successfully");
+        
+        // Navigate to dashboard
+        navigate("/dashboard");
+      } else {
+        setError("No plan received from server");
+      }
+    } catch (error: any) {
       console.error("Roadmap generation failed:", error);
+
+      let errorMessage = "Failed to generate roadmap";
+
+      if (error.code === "ECONNABORTED") {
+        errorMessage = "Request timeout. Please try again.";
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -117,6 +171,17 @@ export default function Onboarding() {
       <main className="flex-1 flex justify-center items-center p-6">
         <div className="w-full max-w-xl">
           <StepIndicator steps={steps} currentStep={currentStep} />
+
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3"
+            >
+              <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-red-800">{error}</p>
+            </motion.div>
+          )}
 
           <AnimatePresence mode="wait">
             <motion.div
@@ -140,17 +205,17 @@ export default function Onboarding() {
             </motion.div>
           </AnimatePresence>
 
-          <div className="flex justify-between mt-10">
+          <div className="flex justify-between mt-10 gap-4">
             <Button
               variant="ghost"
               onClick={handleBack}
-              disabled={currentStep === 0}
+              disabled={currentStep === 0 || isLoading}
             >
               <ArrowLeft className="w-4 h-4 mr-2" /> Back
             </Button>
 
             <Button
-              disabled={!canContinue()}
+              disabled={!canContinue() || isLoading}
               onClick={
                 currentStep === steps.length - 1
                   ? handleGenerateRoadmap
@@ -159,8 +224,17 @@ export default function Onboarding() {
             >
               {currentStep === steps.length - 1 ? (
                 <>
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Generate My Roadmap
+                  {isLoading ? (
+                    <>
+                      <Loader className="w-4 h-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Generate My Roadmap
+                    </>
+                  )}
                 </>
               ) : (
                 <>
@@ -169,6 +243,16 @@ export default function Onboarding() {
               )}
             </Button>
           </div>
+
+          {isLoading && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center text-sm text-muted-foreground mt-6"
+            >
+              ⏳ This may take 30-60 seconds. Please don't close this window.
+            </motion.p>
+          )}
         </div>
       </main>
     </div>
