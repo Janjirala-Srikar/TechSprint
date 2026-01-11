@@ -123,22 +123,22 @@ export default function Index() {
             className="mt-12 flex items-center justify-center gap-8 text-sm text-muted-foreground"
           >
             <div className="flex items-center gap-2">
-              <div className="flex -space-x-2">
-                {[...Array(4)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary border-2 border-background"
-                  />
-                ))}
-              </div>
-              <span>2,500+ users</span>
-            </div>
-            <div className="flex items-center gap-1">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} className="w-4 h-4 fill-accent text-accent" />
-              ))}
-              <span className="ml-1">4.9/5 rating</span>
-            </div>
+  <div className="flex -space-x-2">
+    {[...Array(3)].map((_, i) => (
+      <div
+        key={i}
+        className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary border-2 border-background"
+      />
+    ))}
+  </div>
+  <span>AI-driven roadmap engine</span>
+</div>
+
+<div className="flex items-center gap-1">
+  <Star className="w-4 h-4 text-accent" />
+  <span className="ml-1">Powered by Google Gemini</span>
+</div>
+
           </motion.div>
         </div>
       </section>

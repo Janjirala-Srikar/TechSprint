@@ -1,64 +1,72 @@
-require('dotenv').config();
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
+require("dotenv").config();
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
 
 const app = express();
-const PORT = process.env.PORT || 5000;
 
 /* =======================
    Middleware
 ======================= */
 
-// ✅ Enable CORS (frontend: localhost:8080)
-app.use(cors({
-  origin: 'http://localhost:8080',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: [
+      "http://localhost:8080", // local frontend
+      process.env.FRONTEND_URL, // Vercel frontend
+    ].filter(Boolean),
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true,
+  })
+);
 
-// Parse JSON
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
-
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
 /* =======================
    MongoDB Connection
 ======================= */
 
-const mongoURI =
-  process.env.MONGO_URI || 'mongodb://dummy:dummy@localhost:27017/dummydb';
+const mongoURI = process.env.MONGO_URI;
 
-mongoose
-  .connect(mongoURI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => console.log('✅ MongoDB connected successfully'))
-  .catch((err) => console.error('❌ MongoDB connection error:', err));
+if (mongoURI) {
+  mongoose
+    .connect(mongoURI)
+    .then(() => console.log("✅ MongoDB connected"))
+    .catch((err) =>
+      console.error("❌ MongoDB connection error:", err.message)
+    );
+} else {
+  console.warn("⚠️ MONGO_URI not set. Skipping DB connection.");
+}
 
 /* =======================
    Routes
 ======================= */
 
-// Import routes
-const roadmapRoutes = require('./routes/roadmap');
-const geminiRoutes = require('./routes/gemini');
+const roadmapRoutes = require("./routes/roadmap");
+const geminiRoutes = require("./routes/gemini");
 
-// Use routes
-app.use('/api/roadmap', roadmapRoutes);
-app.use('/api/gemini', geminiRoutes);
+app.use("/api/roadmap", roadmapRoutes);
+app.use("/api/gemini", geminiRoutes);
 
 // Health check
-app.get('/', (req, res) => {
-  res.send('Backend is running 🚀');
+app.get("/", (req, res) => {
+  res.json({ status: "Backend running 🚀" });
 });
 
 /* =======================
-   Start Server
+   LOCAL vs VERCEL START
 ======================= */
 
-app.listen(PORT, () => {
-  console.log(`✅ Server running at http://localhost:${PORT}`);
-});
+const PORT = process.env.PORT || 5000;
+
+// ✅ Run server ONLY in local/dev
+if (process.env.NODE_ENV !== "production") {
+  app.listen(PORT, () => {
+    console.log(`✅ Server running locally on http://localhost:${PORT}`);
+  });
+}
+
+// ✅ Export app for Vercel
+module.exports = app;

@@ -14,6 +14,8 @@ import axios from "axios";
 import { GlobalWorkerOptions, getDocument } from "pdfjs-dist/legacy/build/pdf";
 import pdfWorker from "pdfjs-dist/legacy/build/pdf.worker.min?url";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
 // ✅ Set worker source locally (NO CORS)
 GlobalWorkerOptions.workerSrc = pdfWorker;
 
@@ -97,7 +99,7 @@ export default function Onboarding() {
 
       // Call Gemini backend endpoint to generate the plan
       const geminiResponse = await axios.post(
-        "http://localhost:5000/api/gemini/generate-gemini",
+        `${API_BASE_URL}/api/gemini/generate-gemini`,
         payload,
         {
           timeout: 70000,
